@@ -4,7 +4,7 @@
       Login
     </div>
     <v-sheet width="800" class="d-flex flex-column elevation-2 pa-5 mt-5">
-      <v-text-field :loading="loading" v-model="username" label="Name" />
+      <v-text-field :loading="loading" v-model="name" label="Name" />
       <v-btn class="primary align-self-center" :loading="loading" @click="loading=true; login()">Login</v-btn>
     </v-sheet>
   </div>
@@ -16,7 +16,7 @@ import { mapGetters } from 'vuex'
 
 export default {
   data: () => ({
-    username: '',
+    name: '',
     loading: false
   }),
 
@@ -32,14 +32,16 @@ export default {
         }`,
 
         variables: {
-          name: this.username
+          name: this.name
         }
       }).then(result => {
-        console.log(result)
         if (result.data.User.length) {
+          this.$store.commit('setUser', result.data.User[0])
           this.$toasted.show("You have successfully logged in!")
-          this.$store.commit('setName', this.username)
           this.$router.push('/')
+        }
+        else {
+          this.$toasted.error("Usuário não existe!")
         }
         this.loading = false
       })

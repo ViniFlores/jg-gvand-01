@@ -1,15 +1,18 @@
 import Vue from 'vue'
 import Vuex from 'vuex'
+import createPersistedState from "vuex-persistedstate"
 
 Vue.use(Vuex)
 
 export default new Vuex.Store({
   state: {
-    name: null
+    name: null,
+    userId: null
   },
   mutations: {
     setUser(state, payload) {
       state.name = payload.name
+      state.userId = payload.userId
     },
     setName(state, payload) {
       state.name = payload
@@ -24,5 +27,6 @@ export default new Vuex.Store({
     }
   },
   actions: {},
-  modules: {}
+  modules: {},
+  plugins: [createPersistedState()]
 })
