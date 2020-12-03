@@ -1,12 +1,87 @@
 <template>
   <div class="home">
+
+    <div class="home--section ma-5 pa-5">
+      <h2 class="text-h2 font-weight-bold">search</h2>
+      <div class="text-caption font-weight-bold mb-2">search by title</div>
+
+      <v-text-field v-model="searchText" label="Title"/>
+
+      <ApolloQuery
+        :query='gql => gql`query FetchMovieByTitle ($title: String!) {
+          Movie(title: $title) {
+            movieId,
+            budget,
+            imdbRating,
+            imdbVotes,
+            revenue,
+            url,
+            poster,
+            countries,
+            plot,
+            runtime,
+            released,
+            title,
+            year
+          }
+        }`'
+        :variables="{
+          title: searchText
+        }"
+        >
+          <template v-slot="{ result: { loading, error, data } }">
+            <!-- Loading -->
+            <div v-if="loading" class="loading apollo">Loading...</div>
+
+            <!-- Error -->
+            <div v-else-if="error" class="error apollo">An error occurred</div>
+
+            <!-- Result -->
+            <div v-else-if="data" class="result apollo">
+              <div class="d-flex flex-wrap">
+                <div class="d-flex white elevation-2 flex-column mr-5 mb-5 movie-container" v-for="movie in data.Movie" :key="`movie__${movie.movieId}`">
+                  
+                  <div class="ma-2">
+                    <div class="text-title primary--text">{{ movie.title }}</div>
+                    <div class="secondary--text">
+                      {{movie.year}}
+                    </div>
+                  </div>
+
+                  <v-spacer />
+
+                  <v-img
+                    @click="$router.push(`/Movie/${movie.movieId}`)" 
+                    class="movie-poster"
+                    :src="movie.poster"
+                  />
+
+                  <v-spacer />
+
+                  <v-rating class=" white align-self-center"
+                    @input="addRating($event, movie.movieId); query.refetch()"
+                    empty-icon="mdi-star-outline"
+                    full-icon="mdi-star"
+                  />
+                </div>
+              </div>
+
+            </div>
+
+            <!-- No result -->
+            <div v-else class="no-result apollo">No result :(</div>
+          </template>
+        </ApolloQuery>
+
+    </div>
+
     <div class="home--section ma-5 pa-5">
       <h2 class="text-h2 font-weight-bold">top picks</h2>
       <div class="text-caption font-weight-bold mb-2">based on your ratings, MovieLens recommends these movies</div>
 
       <ApolloQuery
       :query='gql => gql`query {
-        Movie(first: 5, orderBy: imdbRating_desc, filter: {imdbRating_not: null, poster_not: null}) {
+        Movie(first: 4, orderBy: imdbRating_desc, filter: {imdbRating_not: null, poster_not: null}) {
           movieId,
           budget,
           imdbRating,
@@ -44,6 +119,7 @@
                 <v-spacer />
 
                 <v-img
+                  @click="$router.push(`/Movie/${movie.movieId}`)" 
                   class="movie-poster"
                   :src="movie.poster"
                 />
@@ -51,6 +127,7 @@
                 <v-spacer />
 
                 <v-rating class=" white align-self-center"
+                  @input="addRating($event, movie.movieId); query.refetch()"
                   empty-icon="mdi-star-outline"
                   full-icon="mdi-star"
                 />
@@ -71,9 +148,8 @@
       <div class="text-caption font-weight-bold mb-2">movies released in last 90 days that you haven't rated</div>
 
       <ApolloQuery
-      deep
       :query='gql => gql`query RecentReleases($userId: ID!){
-        Movie(first: 5, orderBy: year_desc, filter: {year_not: null, poster_not: null, users_rated_not: {userId: $userId}}) {
+        Movie(first: 4, orderBy: year_desc, filter: {year_not: null, poster_not: null, users_rated_not: {userId: $userId}}) {
           movieId,
           budget,
           imdbRating,
@@ -115,6 +191,7 @@
                 <v-spacer />
 
                 <v-img
+                  @click="$router.push(`/Movie/${movie.movieId}`)" 
                   class="movie-poster"
                   :src="movie.poster"
                 />
@@ -143,14 +220,13 @@
       <div class="text-caption font-weight-bold mb-2">movies released in last 90 days that you haven't rated</div>
 
       <ApolloQuery
-      deep
       :query='gql => gql`query RecomendedTitles ($userId: ID!){
         User(userId: $userId) {
           name,
           RATED_rel {
             rating
           },
-          recommendedMovies (first: 5) {
+          recommendedMovies (first: 4) {
             movieId,
             budget,
             imdbRating,
@@ -180,10 +256,8 @@
 
           <!-- Result -->
           <div v-else-if="data" class="result apollo">
-            {{data}}
             <div class="d-flex flex-wrap">
-              <div class="d-flex white elevation-1 flex-column mr-5 mb-5 movie-container" v-for="movie in data.User.recommendedMovies" :key="`movie__${movie.movieId}`">
-                
+              <div class="d-flex white elevation-1 flex-column mr-5 mb-5 movie-container" v-for="movie in data.User[0].recommendedMovies" :key="`movie__${movie.movieId}`">
                 <div class="ma-2">
                   <div class="text-title primary--text">{{ movie.title }}</div>
                   <div class="secondary--text">
@@ -194,6 +268,7 @@
                 <v-spacer />
 
                 <v-img
+                  @click="$router.push(`/Movie/${movie.movieId}`)" 
                   class="movie-poster"
                   :src="movie.poster"
                 />
@@ -201,6 +276,7 @@
                 <v-spacer />
 
                 <v-rating class=" white align-self-center"
+                  @input="addRating($event, movie.movieId); query.refetch()"
                   empty-icon="mdi-star-outline"
                   full-icon="mdi-star"
                 />
@@ -215,7 +291,6 @@
       </ApolloQuery>
 
     </div>
-    {{userId}}
 
   </div>
 </template>
@@ -226,6 +301,10 @@ import gql from 'graphql-tag'
 
 export default {
   name: 'Home',
+
+  data: () => ({
+    searchText: ""
+  }),
 
   computed: {
     ...mapGetters(['name', 'userId'])
